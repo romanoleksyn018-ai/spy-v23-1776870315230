@@ -1,0 +1,6 @@
+plugins { id 'com.android.application' }
+android { namespace 'com.app.ultra'
+compileSdk 34
+defaultConfig { applicationId 'com.app.ultra'
+minSdk 24
+targetSdk 34 } }
